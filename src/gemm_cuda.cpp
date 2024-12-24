@@ -1,8 +1,9 @@
-#include "include/gemm.hpp"
 #include <iostream>
 #include <cuda_runtime.h>
-#include "include/utility.cuh"
-#include "include/utility.h"
+
+#include "../include/gemm.hpp"
+#include "../include/utility.cuh"
+#include "../include/utility.h"
 
 // Declaration of the kernel launch function from gemm_cuda_kernel.cu
 extern "C" void launchGemmKernel(const float* A, const float* B, float* C, int M, int N, int K);

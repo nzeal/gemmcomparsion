@@ -38,7 +38,7 @@ CUDA_LIBS = -L$(CUDA_PATH)/lib64 -lcudart
 
 # Source files
 COMMON_SRC = main.cpp
-SERIAL_SRC = gemm_serial.cpp
+SERIAL_SRC = src/gemm_serial.cpp
 ACC_SRC = src/gemm_acc.cpp
 OMP_SRC = src/gemm_omp.cpp
 CUDA_SRC = main_cuda.cpp src/gemm_cuda.cpp

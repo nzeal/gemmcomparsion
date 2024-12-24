@@ -4,7 +4,7 @@
 #include <algorithm>
 
 // Include the header file to match the declarations
-#include "include/gemm.hpp"
+#include "../include/gemm.hpp"
 
 
 void benchmark_gemm_serial(const float* A, const float* B, float* C, 

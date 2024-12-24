@@ -4,7 +4,7 @@
 #include <algorithm>
 
 // Include the header file to match the declarations
-#include "include/gemm.hpp"
+#include "../include/gemm.hpp"
 
 #define BLOCK_SIZE 32
 
