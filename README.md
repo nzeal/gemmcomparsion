@@ -6,20 +6,24 @@ This repository contains code for comparing different General Matrix Multiply (G
 
 ```
 gemmcomparison/
-├── include/
-  ├── gemm.hpp
-  ├── gemm_cuda.hpp
-  ├── timing_utils.hpp
-  ├── utlity.cuh
-  ├── utlity.h                               
-├── main.cpp             
-├── gemm_serial.cpp
-├── gemm_acc.cpp
-├── gemm_omp.cpp
-├── gemm_cuda.cpp
+.
+├── include
+│   ├── gemm_cuda.hpp
+│   ├── gemm.hpp
+│   ├── timing_utils.hpp
+│   ├── utility.cuh
+│   └── utility.h
+├── main.cpp
+├── main_cuda.cpp
 ├── makefile
-├── bin/              
-└── README.md           
+├── README.md
+└── src
+    ├── gemm_acc.cpp
+    ├── gemm_cuda.cpp
+    ├── gemm_cuda_kernel.cu
+    ├── gemm_cuda_kernel.o
+    ├── gemm_omp.cpp
+    └── gemm_serial.cpp  
 ```
 
 ## Getting Started
