@@ -10,7 +10,7 @@ SYCL_FLAGS := -fsycl
 INCLUDES := -I./include
 
 # Source files
-SOURCES := main.cpp gemm.cpp
+SOURCES := main.cpp gemm_sycl.cpp
 
 # Output executables
 SERIAL_OUT := gemm_serial

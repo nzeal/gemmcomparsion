@@ -10,7 +10,7 @@ ifeq ($(strip $(NVHPC)),)
     CXX = nvc++
     NVCC = nvcc
     ACCFLAGS = -acc=gpu -Minfo=accel
-    OMPFLAGS = -mp=gpu -gpu=cc80 -Minfo=accel
+    OMPFLAGS = -mp=gpu -gpu=cc80,managed -Minfo=accel
     CUDAFLAGS = -O3
 else
     CXX = g++
@@ -37,11 +37,11 @@ CXXFLAGS = -O3 -I./include
 CUDA_LIBS = -L$(CUDA_PATH)/lib64 -lcudart
 
 # Source files
-COMMON_SRC = main.cpp
+COMMON_SRC = directives/main.cpp
 SERIAL_SRC = src/gemm_serial.cpp
 ACC_SRC = src/gemm_acc.cpp
 OMP_SRC = src/gemm_omp.cpp
-CUDA_SRC = main_cuda.cpp src/gemm_cuda.cpp
+CUDA_SRC = cuda/main_cuda.cpp cuda/gemm_cuda.cpp
 CUDA_KERNEL = src/gemm_cuda_kernel.cu
 
 # Object files for CUDA

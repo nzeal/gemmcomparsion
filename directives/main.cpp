@@ -3,9 +3,9 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
-#include "include/utility.h"
-#include "include/timing_utils.hpp"
-#include "include/gemm.hpp"
+#include "../include/utility.h"
+#include "../include/timing_utils.hpp"
+#include "../include/gemm.hpp"
 
 // Forward declarations
 #if defined(SERIAL_VERSION)

@@ -1,9 +1,9 @@
 #include <iostream>
 #include <chrono>
 #include <algorithm>
-#include "include/utility.h"
-#include "include/timing_utils.hpp"
-#include "include/gemm.hpp"
+#include "../include/utility.h"
+#include "../include/timing_utils.hpp"
+#include "../include/gemm.hpp"
 
 // Forward declaration
 void benchmark_gemm_cuda(const float* A, const float* B, float* C, int M, int N, int K);
