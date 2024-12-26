@@ -53,6 +53,7 @@ gemmcomparison/
 
 - gnu compiler
 - NVHPC compiler
+- OneAPI
 
 ### Installation
 
@@ -70,6 +71,7 @@ Install:
 - make acc
 - make omp
 - make cuda
+- make sycl
 ```
 
 ## Usage

@@ -20,6 +20,10 @@ else
     CUDAFLAGS = -O3
 endif
 
+# SYCL compiler and flags
+CXX_SYCL = icpx
+SYCL_FLAGS = -fsycl -std=c++17
+
 # CUDA paths - adjust these for your system
 NVHPC_INCLUDE_PATH := /leonardo/prod/spack/5.2/install/0.21/linux-rhel8-icelake/gcc-8.5.0/nvhpc-24.3-v63z4inohb4ywjeggzhlhiuvuoejr2le/Linux_x86_64/24.3
 CUDA_PATH ?=  $(NVHPC_INCLUDE_PATH)/cuda/12.3/
@@ -43,6 +47,7 @@ ACC_SRC = src/gemm_acc.cpp
 OMP_SRC = src/gemm_omp.cpp
 CUDA_SRC = cuda/main_cuda.cpp cuda/gemm_cuda.cpp
 CUDA_KERNEL = src/gemm_cuda_kernel.cu
+SYCL_SRC = sycl/main.cpp sycl/gemm_sycl.cpp
 
 # Object files for CUDA
 CUDA_OBJ = gemm_cuda_kernel.o
@@ -51,10 +56,10 @@ CUDA_OBJ = gemm_cuda_kernel.o
 BINDIR = bin
 
 # Header files
-HEADERS = $(wildcard include/*.hpp) $(wildcard include/*.cuh)
+HEADERS = $(wildcard include/*.hpp) $(wildcard include/*.cuh) $(wildcard sycl/include/*.hpp)
 
 # Targets
-all: setup serial acc omp cuda
+all: setup serial acc omp cuda sycl
 
 # Setup target: create bin directory
 setup:
@@ -91,6 +96,10 @@ cuda: setup $(CUDA_OBJ) $(CUDA_SRC) $(HEADERS)
 	$(CXX) $(CXXFLAGS) $(CUDA_INCLUDES) $(CUDA_SRC) $(CUDA_OBJ) -o $(BINDIR)/$@ $(CUDA_LIBS)
 	@echo "CUDA build complete. Output: $(BINDIR)/$@"
 
+sycl: setup $(SYCL_SRC) $(HEADERS)
+	@echo "Building SYCL version..."
+	$(CXX_SYCL) $(CXXFLAGS) $(SYCL_FLAGS) -DSYCL_VERSION $(SYCL_SRC) -o $(BINDIR)/$@
+	@echo "SYCL build complete. Output: $(BINDIR)/$@"
 
 # Clean up generated binaries and object files
 clean:
@@ -106,4 +115,4 @@ versions:
 	@$(NVCC) --version
 
 # Declare phony targets
-.PHONY: all setup clean versions serial acc omp cuda
+.PHONY: all setup clean versions serial acc omp cuda sycl
