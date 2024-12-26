@@ -1,5 +1,6 @@
 #include <cuda_runtime.h>
 #include <iostream>
+#include "../include/aid-cuda.cuh"  // Include the error-checking header
 
 __global__ void cuda_gemm_kernel(const float* A, const float* B, float* C,
                                   int M, int N, int K) {
@@ -56,7 +57,10 @@ extern "C" {
         dim3 dimGrid((N + BLOCK_SIZE - 1) / BLOCK_SIZE, (M + BLOCK_SIZE - 1) / BLOCK_SIZE);
 
         cuda_gemm_kernel<<<dimGrid, dimBlock>>>(A, B, C, M, N, K);
-        cudaDeviceSynchronize();
+        
+	// Check for errors after kernel launch
+        chkErr(cudaGetLastError());  // Check if kernel launch succeeded
+        chkErr(cudaDeviceSynchronize());  // Synchronize and check for any runtime errors
     }
 }
 

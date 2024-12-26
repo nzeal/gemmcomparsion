@@ -11,7 +11,7 @@ ifeq ($(strip $(NVHPC)),)
     NVCC = nvcc
     ACCFLAGS = -acc=gpu -Minfo=accel
     OMPFLAGS = -mp=gpu -gpu=cc80,managed -Minfo=accel
-    CUDAFLAGS = -O3
+    CUDAFLAGS =  -arch=sm_80 -O3
 else
     CXX = g++
     NVCC = nvcc
