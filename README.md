@@ -82,7 +82,7 @@ To run the GEMM comparison, execute the following command:
 python src/compare_gemm.py 
 ```
 
-warning:
+warning: do something
 
 ## Contributing
 
