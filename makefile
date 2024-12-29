@@ -10,13 +10,13 @@ ifeq ($(strip $(NVHPC)),)
     CXX = nvc++
     NVCC = nvcc
     ACCFLAGS = -acc=gpu -Minfo=accel
-    OMPFLAGS = -mp=gpu -gpu=cc80,managed -Minfo=accel
+    OMPFLAGS = -mp=gpu -gpu=cc80,managed -Minfo=all
     CUDAFLAGS =  -arch=sm_80 -O3
 else
     CXX = g++
     NVCC = nvcc
     ACCFLAGS = # No flags for ACC when not using NVIDIA HPC SDK
-    OMPFLAGS = -fopenmp
+    OMPFLAGS = 
     CUDAFLAGS = -O3
 endif
 

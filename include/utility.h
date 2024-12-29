@@ -31,4 +31,5 @@ void printArray(const T* array, size_t size) {
     std::cout << std::endl;
 }
 
+
 #endif // UTILITY_H

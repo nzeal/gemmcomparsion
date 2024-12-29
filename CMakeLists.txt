@@ -1,99 +1,106 @@
-cmake_minimum_required(VERSION 3.10)
-project(GEMM VERSION 1.0 LANGUAGES CXX CUDA)
+cmake_minimum_required(VERSION 3.18)
+project(GEMM_Accelerated_Compute CUDA CXX)
 
-# Set up the CUDA toolchain
-if(NOT DEFINED NVHPC)
-    set(CXX nvc++)
-    set(NVCC nvcc)
-    set(ACCFLAGS "-acc=gpu -Minfo=accel")
-    set(OMPFLAGS "-mp=gpu -gpu=cc80 -Minfo=accel")
-    set(CUDAFLAGS "-O3")
-else()
-    set(CXX g++)
-    set(NVCC nvcc)
-    set(ACCFLAGS "")
-    set(OMPFLAGS "-fopenmp")
-    set(CUDAFLAGS "-O3")
+# Set CUDA architectures policy
+cmake_policy(SET CMP0104 NEW)
+
+# Check for NVIDIA HPC compiler
+if(NOT CMAKE_CXX_COMPILER MATCHES "nvc++")
+    message(FATAL_ERROR "This project requires NVIDIA HPC Compiler (nvc++). Current compiler: ${CMAKE_CXX_COMPILER}")
 endif()
 
-# Specify paths for CUDA
-set(CUDA_PATH "/leonardo/prod/spack/5.2/install/0.21/linux-rhel8-icelake/gcc-8.5.0/nvhpc-24.3-v63z4inohb4ywjeggzhlhiuvuoejr2le/Linux_x86_64/24.3/cuda/12.3/")
-set(CUDA_INCLUDES "${CUDA_PATH}/include")
-set(CUDA_LIBS "${CUDA_PATH}/lib64")
+# Output compiler information
+message(STATUS "Using CXX compiler: ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION})")
 
-# Ensure that CUDA path exists
-if(NOT EXISTS "${CUDA_PATH}")
-    message(FATAL_ERROR "CUDA path ${CUDA_PATH} does not exist. Please check your CUDA installation.")
+# Set paths and flags for A100
+set(GPU_ARCH "80")  # Ampere architecture for A100
+set(COMMON_FLAGS "-O3")  # Assume AMD EPYC CPU. For Intel CPUs, consider adding -march=native or -xHost. For other AMD CPUs, adjust optimization flags accordingly.
+set(ACC_FLAGS "-acc=gpu -Minfo=accel")
+set(GPU_MANAGED_FLAGS "-gpu=sm${GPU_ARCH},managed")
+set(OMP_FLAGS "-mp=gpu -Minfo=mp")
+
+# Find CUDA
+find_package(CUDAToolkit REQUIRED)
+include_directories(${CUDAToolkit_INCLUDE_DIRS})
+
+# Set CUDA compiler
+find_program(CUDAToolkit_NVCC_EXECUTABLE NAMES nvcc PATHS ${CUDAToolkit_BIN_DIR} NO_DEFAULT_PATH)
+if(NOT CUDAToolkit_NVCC_EXECUTABLE)
+    message(FATAL_ERROR "CUDA compiler not found. Please ensure CUDA is installed and nvcc is in your PATH.")
 endif()
 
-# Include directories for headers
-include_directories(${CUDA_INCLUDES} include)
+# Project structure
+set(PROJECT_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
+set(PROJECT_CUDA_DIR ${CMAKE_SOURCE_DIR}/cuda)
+set(PROJECT_SRC_DIR ${CMAKE_SOURCE_DIR}/src)
+set(PROJECT_DIRECTIVES_DIR ${CMAKE_SOURCE_DIR}/directives)
 
-# Set the common source files
-set(COMMON_SRC main.cpp)
+# Include directories
+include_directories(
+    ${PROJECT_INCLUDE_DIR}
+    ${PROJECT_CUDA_DIR}
+)
 
-# Define source files for different configurations
-set(SERIAL_SRC src/gemm_serial.cpp)
-set(ACC_SRC src/gemm_acc.cpp)
-set(OMP_SRC src/gemm_omp.cpp)
-set(CUDA_SRC main_cuda.cpp src/gemm_cuda.cpp)
-set(CUDA_KERNEL src/gemm_cuda_kernel.cu)
+# Source files
+set(COMMON_SRCS ${PROJECT_DIRECTIVES_DIR}/main.cpp)
 
-# Define the target output directory
-set(BIN_DIR ${CMAKE_BINARY_DIR}/bin)
-
-# Create output directory if not exists
-file(MAKE_DIRECTORY ${BIN_DIR})
-
-# Object files for CUDA
-set(CUDA_OBJ gemm_cuda_kernel.o)
+# Create the output directory
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Serial version
-add_executable(serial ${COMMON_SRC} ${SERIAL_SRC})
+add_executable(serial
+    ${COMMON_SRCS}
+    ${PROJECT_SRC_DIR}/gemm_serial.cpp
+)
+target_compile_options(serial PRIVATE ${COMMON_FLAGS})
 target_compile_definitions(serial PRIVATE SERIAL_VERSION)
-target_compile_options(serial PRIVATE ${CXXFLAGS})
 
 # OpenACC version
-add_executable(acc ${COMMON_SRC} ${ACC_SRC})
+add_executable(acc
+    ${COMMON_SRC}
+    ${PROJECT_SRC_DIR}/gemm_acc.cpp
+)
+target_compile_options(acc PRIVATE ${COMMON_FLAGS} ${ACC_FLAGS} ${GPU_MANAGED_FLAGS})
+target_link_options(acc PRIVATE ${ACC_FLAGS} ${GPU_MANAGED_FLAGS})
 target_compile_definitions(acc PRIVATE ACC_VERSION)
-target_compile_options(acc PRIVATE ${CXXFLAGS} ${ACCFLAGS})
 
 # OpenMP version
-add_executable(omp ${COMMON_SRC} ${OMP_SRC})
+add_executable(omp
+    ${COMMON_SRC}
+    ${PROJECT_SRC_DIR}/gemm_omp.cpp
+)
+target_compile_options(omp PRIVATE ${COMMON_FLAGS} ${OMP_FLAGS} ${GPU_MANAGED_FLAGS})
+target_link_options(omp PRIVATE ${OMP_FLAGS} ${GPU_MANAGED_FLAGS})
 target_compile_definitions(omp PRIVATE OMP_VERSION)
-target_compile_options(omp PRIVATE ${CXXFLAGS} ${OMPFLAGS})
 
-# CUDA kernel compilation
-add_custom_command(
-    OUTPUT ${CUDA_OBJ}
-    COMMAND ${NVCC} ${CUDAFLAGS} ${CUDA_INCLUDES} -c ${CUDA_KERNEL} -o ${CUDA_OBJ}
-    DEPENDS ${CUDA_KERNEL}
-    COMMENT "Compiling CUDA kernel"
+# CUDA version
+add_executable(cuda
+    ${COMMON_SRC}
+    ${PROJECT_CUDA_DIR}/main_cuda.cpp
+    ${PROJECT_CUDA_DIR}/gemm_cuda.cpp
+    ${PROJECT_SRC_DIR}/gemm_cuda_kernel.cu
 )
+target_compile_options(cuda PRIVATE ${COMMON_FLAGS} $<$<COMPILE_LANGUAGE:CUDA>:-O3 -arch=sm_${GPU_ARCH}>)
+target_compile_options(cuda PRIVATE ${COMMON_FLAGS} $<$<COMPILE_LANGUAGE:CUDA>:-O3 -arch=sm_${GPU_ARCH}>)
+target_compile_definitions(cuda PRIVATE CUDA_VERSION)
 
-# CUDA version compilation (using add_executable)
-add_executable(cuda ${COMMON_SRC} ${CUDA_SRC} ${CUDA_OBJ})
-target_compile_options(cuda PRIVATE ${CUDAFLAGS})
-target_link_libraries(cuda PRIVATE ${CUDA_LIBS})
-
-# Ensure that the CUDA object files are built properly
-add_dependencies(cuda ${CUDA_OBJ})
-
-# Set target output directory for all executables
-set_target_properties(serial acc omp cuda PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${BIN_DIR}
-)
-
-# Print version information for the compilers
-add_custom_target(versions
-    COMMAND ${CXX} --version
-    COMMAND ${NVCC} --version
-    COMMENT "Print compiler versions"
-)
-
+# Add custom target for environment setup
+# Add custom target for environment setup
+# This target prints the CXX and CUDA compiler information and their versions.
+# Usage: Run `make env` or `ninja env` to display the compiler information.
+add_custom_target(env
+    COMMAND ${CMAKE_COMMAND} -E echo "CXX compiler: ${CMAKE_CXX_COMPILER}"
+    COMMAND ${CMAKE_COMMAND} -E echo "CUDA compiler: ${CUDAToolkit_NVCC_EXECUTABLE}"
+    COMMAND ${CMAKE_CXX_COMPILER} --version
 # Clean target
-add_custom_target(clean
-    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/CMakeFiles/clean.cmake
-    COMMENT "Cleaning up generated binaries and object files"
+# This target removes all generated files and directories from the build.
+# Usage: Run `make clean_all` or `ninja clean_all` depending on your build system.
+add_custom_target(clean_all
+    COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/bin
+    COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/CMakeFiles
+    COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_BINARY_DIR}/CMakeCache.txt
+    COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_BINARY_DIR}/Makefile
+    COMMENT "Cleaning all built files"
+)   COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_BINARY_DIR}/Makefile
+    COMMENT "Cleaning all built files"
 )
-

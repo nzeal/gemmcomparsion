@@ -1,0 +1,300 @@
+B4
+==
+----------------------------------------------------
+Work with code submissions in a public-inbox archive
+----------------------------------------------------
+
+:Author:    mricon@kernel.org
+:Date:      2024-06-14
+:Copyright: The Linux Foundation and contributors
+:License:   GPLv2+
+:Version:   0.14.2
+:Manual section: 5
+
+SYNOPSIS
+--------
+b4 {mbox,am,shazam,pr,diff,ty,kr,prep,send,trailers} [options]
+
+DESCRIPTION
+-----------
+This is a helper utility to work with patches and pull requests made
+available via a public-inbox archive like lore.kernel.org. It's
+written to make it simpler to participate in patch-based workflows,
+like those used in the Linux kernel development.
+
+The name "b4" was chosen for ease of typing and because B-4 was the
+precursor to Lore and Data in the Star Trek universe.
+
+Full documentation is available on https://b4.docs.kernel.org/.
+
+SUBCOMMANDS
+-----------
+Maintainer-oriented:
+
+* *mbox*: Download a thread as an mbox file
+* *am*: Create an mbox file that is ready to git-am
+* *shazam*: Apply patch series to git repositories
+* *pr*: Work with pull requests
+* *ty*: Create templated replies for processed patches and pull requests
+* *diff*: Show range-diff style diffs between patch versions
+* *kr*: (STUB) Operate on patatt-compatible keyrings
+
+Contributor-oriented:
+
+* *prep*: prepare your series for submission
+* *trailers*: retrieve and apply code-review trailers
+* *send*: send your series for review on distribution lists
+
+For full options and what they do, please see ``b4 --help`` and ``b4
+subcommand --help``.
+
+b4 mbox
+~~~~~~~
+
+This command allows retrieving entire threads from a remote public-inbox
+instance. You can open the resulting mbox file with most mail clients
+for actions like replying to conversations or reviewing patch
+submissions.
+
+You can provide the message either as a msgid, as full URL to a
+public-inbox archive, or you can pipe it on stdin.
+
+For options and their descriptions, see ``b4 mbox --help``.
+
+*Examples*
+
+``b4 mbox [msgid]``
+  Download a thread from the default public-inbox server and save it in
+  the current directory as a .mbox file.
+
+``b4 mbox -m ~/Mail [msgid]``
+  Download a thread from your ~/Mail folder and save it in the current
+  directlry as a .mbox file.
+
+``b4 mbox -fo ~/Mail [public-inbox-url]``
+  Download the thread from this public-inbox server, and add it to your
+  existing mailbox, filtering out any dupes already in your mailbox
+  folder.
+
+
+b4 am
+~~~~~
+
+This command allows retrieving threads from a public-inbox instance and
+preparing them for applying to a git repository using the "git am"
+command. It will automatically perform the following operations:
+
+* pick the latest submitted version of the series (it can check for
+  newer threads using ``-c`` as well)
+* check DKIM signatures and patatt attestation on all patches and code
+  review messages
+* collate all submitted code-review trailers (Reviewed-by, Acked-by,
+  etc) and put them into the commit message
+* add your own Signed-off-by trailer (with ``-s``)
+* reroll series from partial updates (e.g. someone submits a v2 of a
+  single patch instead of rerolling the entire series)
+* guess where in the tree history the patches belong, if the exact
+  commit-base is not specified (with ``-g``)
+* prepare the tree for a 3-way merge (with ``-3``)
+* cherry-pick a subset of patches from a large series (with ``-P``)
+
+Note: Unless you intend to do some preparatory work on the series before
+applying it to the git repository (e.g. a 3-way merge), you should
+consider using ``b4 shazam`` to apply the retrieved series.
+
+For options and their descriptions, see ``b4 am --help``.
+
+*Examples*
+
+``b4 am -sl [msgid]``
+  Download a thread from the default public-inbox server, apply any
+  follow-up trailers, add your own Signed-Off-By trailer plus a Link:
+  trailer indicating the origin of the patch, then save the resulting
+  .mbox file in the current directory ready to be applied by "git am".
+
+``b4 am -sl -P 1-3 [msgid]``
+  Same as the previous example, but pick only patches 1,2,3 from the
+  entire series.
+
+``b4 am -3 [msgid]``
+  Download the series and prepare the local git tree for a 3-way merge
+  by ensuring that all index blobs exist.
+
+``b4 am --check [msgid]``
+  Download the series and show if it passes the checks. You can specify
+  the command using the ``b4.am-perpatch-check-cmd`` configuration
+  option. For the Linux kernel, the default will be the most common
+  ``checkpatch.pl`` set of options.
+
+b4 shazam
+~~~~~~~~~
+
+This is very similar to **b4 am**, but will also apply patches
+directly to the current git tree using ``git am``. Alternatively, when
+used with ``-H``, it can fetch the patch series into ``FETCH_HEAD`` as
+if it were a pull request, ready to review and merge. B4 uses the cover
+letter as a template for the merge commit.
+
+If you want to automatically invoke git-merge, you can use ``-M``
+instead of ``-H``. B4 automatically opens up the editor allowing you to
+edit the merge commit message.
+
+Note: the ``-M`` and ``-H`` options work best for series that have the
+``base-commit`` info matching an object in your local tree.
+
+For options and their descriptions, see ``b4 shazam --help``.
+
+*Examples*
+
+``b4 shazam -sl -M [msgid]``
+  Download a thread from the default public-inbox server, apply any
+  follow-up trailers, add your own Signed-Off-By trailer plus a Link:
+  trailer with the origin of the patch, then merge this commit
+  to the current git repository using the cover letter as the merge
+  commit template.
+
+``b4 shazam -sl -M --merge-base v6.4-rc4 [msgid]``
+  Same as the previous example, but forces the merge-base to be the
+  commit-ish object provided instead of the one listed in the patch
+  series itself.
+
+b4 pr
+~~~~~
+This command is for working with pull requests submitted using
+``git-request-pull``. It provides the following benefits as opposed to using git directly:
+
+* it can check if the pull is already applied before performing a git
+  fetch
+* it checks the signature on the tag or tip commit specified in the pull
+  request
+* it can track applied pull requests and send replies to submitters
+  using ``b4 ty``
+
+For options and their descriptions, see ``b4 pr --help``.
+
+*Examples*
+
+``b4 pr [msgid]``
+  Download the message with the pull-request and apply it to the current
+  git tree.
+
+b4 ty
+~~~~~
+If you've retrieved and applied some patches to your tree, you should be
+able to fire up the “auto-thankanator”, which uses patch-id and commit
+subject tracking to figure out which series from those you have
+retrieved you already applied to your tree. The process is usually
+pretty fast and fairly accurate.
+
+To send mails directly using ``-S``, you should have a configured
+``[sendemail]`` section somewhere in your applicable git configuration
+files. By default, ``b4 ty`` writes out .thanks files in the current
+directly that you can edit and sent out using a command like ``mutt -f
+thanks.file``.
+
+For options and their descriptions, see ``b4 ty --help``.
+
+*Examples*
+
+``b4 ty -a -S``
+  Locate any retrieved series that you have applied to the current git
+  repository and send out thanks to all members of the conversation.
+
+``b4 ty -a -S --dry-run``
+  Same as above, but instead of actually sending it out show what the
+  message is going to be, first.
+
+b4 diff
+~~~~~~~
+The diff subcommand allows comparing two different revisions of the same
+patch series using ``git range-diff``. Note, that in order to perform
+the range-diff comparison, both revisions need to cleanly apply to the
+current tree, which may not always be possible to achieve.
+
+For options and their descriptions, see ``b4 diff --help``.
+
+*Examples*
+
+``b4 diff [msgid-of-vN]``
+  Retrieves the thread matching the msgid specified and attempts to
+  auto-locate the previous version of the series. If successful, shows
+  the output of ``git range-diff`` comparing the patch differences.
+
+b4 kr
+~~~~~
+
+This subcommand allows maintaining a local keyring of contributor keys.
+
+Note: this part of b4 is under active development with improvements
+planned for the near future.
+
+For options and their descriptions, see ``b4 kr --help``.
+
+*Examples*
+
+``b4 kr --show-keys [msgid]``
+  Retrieve the thread specified and show any cryptographic keys used to
+  attest the patches.
+
+b4 prep, trailers, send
+~~~~~~~~~~~~~~~~~~~~~~~
+These commands allow preparing and submitting a patch series for review
+on the mailing list. Full documentation is available online at the
+following address:
+
+https://b4.docs.kernel.org/en/latest/contributor/overview.html
+
+For options, see the output of ``b4 prep --help``, ``b4 trailers
+--help`` and ``b4 send --help``.
+
+*Examples*
+
+``b4 prep -n my-new-feature -f v6.4-rc4``
+  Start a new branch, forking it from the tag ``v6.4-rc4``, and prepare
+  it for adding more patches.
+
+``b4 prep --edit-cover``
+  Edit the cover letter for the current series. This step isn't
+  required for most single-patch submissions.
+
+``b4 prep --auto-to-cc``
+  Find all addresses that need to receive a copy of the patch series
+  submission and add them to the cover letter.
+
+``b4 prep --check``
+  Run the configured checks on your series to identify any potential
+  problems. For Linux kernel, this runs ``checkpatch.pl`` with the
+  recommended set of parameters.
+
+``b4 send -o /tmp/outdir``
+  Generate the patches that b4 is going to send out and save them into
+  the directory specified. This allows you to review the series before
+  actually sending them.
+
+``b4 send --preview-to [addr1@example.com addr2@example.com]``
+  Send a "preview" version of the series for someone to check before
+  submitting it upstream.
+
+``b4 trailers -u``
+  Retrieve any code-review trailers provided for your series and apply
+  them to the current branch.
+
+CONFIGURATION
+-------------
+B4 configuration is handled via git-config(1), so you can store it in
+either the toplevel ``$HOME/.gitconfig`` file, or in a per-repository
+.git/config file if your workflow changes per project.
+
+To see configuration options available, see online documentation at
+https://b4.docs.kernel.org/en/latest/config.html
+
+PROXYING REQUESTS
+-----------------
+Commands making remote HTTP requests may be configured to use a proxy by
+setting the **HTTPS_PROXY** environment variable, as described in
+https://docs.python-requests.org/en/latest/user/advanced/#proxies.
+
+SUPPORT
+-------
+Please email tools@kernel.org with support requests, or browse the list
+archive at https://lore.kernel.org/tools.

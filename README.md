@@ -1,5 +1,7 @@
 # GEMM Comparison
 
+Warning: this is going to be changed, for better readiblity of the code
+
 This repository contains code for comparing different General Matrix Multiply (GEMM) implementations.
 
 ## Folder Structure

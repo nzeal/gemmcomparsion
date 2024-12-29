@@ -28,7 +28,8 @@ inline double calculateDurationInSeconds(
  * @param dataSize The size of the data processed in bytes.
  * @param numOperations The number of floating-point operations performed (in FLOPs).
  */
-inline void computeAndPrintMetrics(
+
+/*inline void computeAndPrintMetrics(
     const std::chrono::high_resolution_clock::time_point& start,
     const std::chrono::high_resolution_clock::time_point& end,
     size_t dataSize,
@@ -40,4 +41,22 @@ inline void computeAndPrintMetrics(
     std::cout << "Time: " << time << " s\n";
     std::cout << "GFLOPS: " << gflops << "\n";
     std::cout << "Bandwidth: " << bandwidth << " GB/s\n\n";
+}*/
+
+inline void computeAndPrintMetrics(
+    const std::chrono::high_resolution_clock::time_point& start,
+    const std::chrono::high_resolution_clock::time_point& end,
+    size_t dataSize,
+    size_t numOperations,
+    double& time,
+    double& gflops,
+    double& bandwidth) {
+    time = calculateDurationInSeconds(start, end);
+    gflops = static_cast<double>(numOperations) / (time * 1e9);
+    bandwidth = (static_cast<double>(dataSize) / (1024 * 1024 * 1024)) / time;
+
+    std::cout << "Time: " << time << " s\n";
+    std::cout << "GFLOPS: " << gflops << "\n";
+    std::cout << "Bandwidth: " << bandwidth << " GB/s\n\n";
 }
+
