@@ -1,9 +1,10 @@
 #include <iostream>
 #include <cuda_runtime.h>
 
-#include "../include/gemm.hpp"
-#include "../include/utility.cuh"
-#include "../include/utility.h"
+#include "include/gemm_cuda.hpp"
+#include "include/gemm.hpp"
+#include "include/utility.cuh"
+#include "include/utility.h"
 
 // Declaration of the kernel launch function from gemm_cuda_kernel.cu
 extern "C" void launchGemmKernel(const float* A, const float* B, float* C, int M, int N, int K);
@@ -36,4 +37,3 @@ void benchmark_gemm_cuda(const float* h_A, const float* h_B, float* h_C, int M, 
     checkCudaErrors(cudaFree(d_B));
     checkCudaErrors(cudaFree(d_C));
 }
-
